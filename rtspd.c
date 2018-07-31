@@ -8,16 +8,19 @@
 #include <signal.h>
 #include "./rtsp/rtsp.h"
 #include "rtspd_api.h"
-#include "net/socket.h"
-#include "rtp/upd.h"
+#include "rtp/udp.h"
 #include "comm/type.h"
+#include "./net/socket.h"
 
 
-pthread_count_t rtspd_cond;
+
+pthread_cond_t rtspd_cond;
 sem_t rtspd_semop;
 sem_t rtspd_lock[MAX_CONN];
 sem_t rtspd_accept_lock;
 pthread_mutex_t rtspd_mutex;
+
+//extern S32 create_vrtcp_socket(const CHAR *host, S32 port,S32 type,S32 cur_conn_num);
 
 VOID sig_exit(VOID)
 {
@@ -32,19 +35,10 @@ VOID sig_exit(VOID)
  *
  * **************************************************/
 
-
-S32 proc_rtsp(CHAR *rtsp_ip, S32 rtsp_port)
+S32 proc_rtspd(CHAR *rtsp_ip, S32 rtsp_port)
 {
 	CHAR port[128] = "";
 		
-	#if 0 
-	if(parse_sys_conf("./rtspd.conf")<0
-	{
-		printf("please check rtspd.conf\n");
-		return -1;
-	}
-	#endif
-
 	strcpy(rtsp[0]->host_name, rtsp_ip);
 	rtsp[0]->rtsp_deport = rtsp_port;
 	sprintf(port, "%d", rtsp[0]->rtsp_deport);
@@ -54,6 +48,17 @@ S32 proc_rtsp(CHAR *rtsp_ip, S32 rtsp_port)
 	return 0;
 }
 
+
+S32 getrtspd_version(CHAR *version)
+{
+	if(!version)
+		return -1;
+
+	*version = "1.0";
+
+	return 0;	
+
+}
 
 /**************************************************
  * 函数名称: rtspd_init
@@ -179,7 +184,9 @@ S32 rtsp_init(CHAR *rtsp_ip, S32 rtsp_port)
  * *************************************************/
 S32 rtsp_free()
 {
+#if 0
 	rtsp[0] ->fd.rtspfd;
+#endif
 	return 0;
 }
 
@@ -232,7 +239,7 @@ S32 set_framerate(S32 f_rate, S32 free_chn)
  * *************************************************/
 S32 rtsp_proc(S32 free_chn)
 {
-	if(pthread_create(&rtsp[free_chnn]->pth.rtsp_vthread, NULL, vd_rtsp_proc, (VOID *)free_chn) < 0)
+	if(pthread_create(&rtsp[free_chn]->pth.rtsp_vthread, NULL, vd_rtsp_proc, (VOID *)free_chn) < 0)
 	{
 		printf("pthread_create vd_rtsp_proc thread error \n");
 		return -1;
@@ -254,7 +261,7 @@ S32 rtp_init(S32 free_chn)
 {
 	S32 ret;
 	sem_wait(&rtspd_lock[free_chn]);
-	ret = rtspd_staus(free_chn);
+	ret = rtspd_status(free_chn);
 	
 	if(ret != 8)
 	{
@@ -262,7 +269,7 @@ S32 rtp_init(S32 free_chn)
 		return -1;
 	}
 
-	if(crate_vrtp_socket(rtsp[free_chn]->cli_rtsp.cli_host,
+	if(create_vrtp_socket(rtsp[free_chn]->cli_rtsp.cli_host,
 			rtsp[free_chn]->cmd_port.rtp_cli_port,
 			SOCK_DGRAM,
 			free_chn))
@@ -335,7 +342,7 @@ S32 rtcp_init(S32 free_chn)
 		return -1;
 	}
 	rtsp[free_chn]->rtspd_status = 0x18;
-	if(pthread_crate(&rtsp[free_chn]->pth.rtcp_vthread, NULL, vd_rtcp_func, (VOID*)free_chn)< 0)
+	if(pthread_create(&rtsp[free_chn]->pth.rtcp_vthread, NULL, vd_rtcp_func, (VOID*)free_chn)< 0)
 	{
 		printf("pthread_create rtcp error:\n");
 		return -1;
@@ -375,7 +382,7 @@ S32 rtspd_vtype(S32 free_chn)
  * *************************************************/
 S32 rtcp_free(S32 free_chn)
 {
-	close(rtsp[free_chn]->fd.video_rtsp_fd);
+	close(rtsp[free_chn]->fd.video_rtcp_fd);
 	rtsp[free_chn]->is_runing = 0;
 }
 
@@ -423,7 +430,7 @@ S32 rtsp_freeall()
 	
 	for(i = 0; i<MAX_CONN; i++)
 	{
-		if(rtsp[free_chn]->is_running)
+		if(rtsp[free_chn]->is_runing)
 		{
 			rtp_free(free_chn);
 			rtcp_free(free_chn);
@@ -448,6 +455,7 @@ S32 rtspd_chn_quit(S32 free_chn)
 	return rtsp[free_chn]->is_runing;
 }
 
+
 S32 main()
 {
 	S32 free_chn, vist_type;
@@ -459,8 +467,9 @@ S32 main()
 	printf("rtspd version is %s\n", version);
 		
 	rtspd_init();
-	rtsp_init("127.0.0.1", 554);
+	rtsp_init("192.168.254.222", 5554);
 	free_chn = rtspd_freechn();
+#if 0
 	set_framerate(25, free_chn);
 	rtsp_proc(free_chn);
 	rtp_init(free_chn);
@@ -478,6 +487,7 @@ S32 main()
 	rtcp_free(free_chn);
 	rtsp_free();
 	rtspd_free();
-		
+#endif
+
 	return 0;
 }
