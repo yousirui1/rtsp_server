@@ -4,7 +4,6 @@
 #include "../comm/type.h"
 
 
-
 typedef enum{
 	SR = 200,
 	RR = 201,

@@ -51,6 +51,19 @@ S32 create_vrtp_socket(const CHAR* host, S32 port, S32 type, S32 cur_conn_num)
 	return 0;
 }
 
+VOID *vd_rtp_func(VOID *arg)
+{
+	S32 conn_cur;
+	struct timeval tv;
+	
+	pthread_detach(pthread_self());
+	conn_cur = (S32)arg;
+	
+	rtp_send_packet(conn_cur);
+	
+	pthread_exit(NULL);
+}
+
 S32 create_vrtcp_socket(const CHAR *host, S32 port, S32 type, S32 cur_conn_num)
 {
 	S32 len, reuse = 1;
@@ -93,21 +106,11 @@ S32 create_vrtcp_socket(const CHAR *host, S32 port, S32 type, S32 cur_conn_num)
 
 }
 
-VOID *vd_rtp_func(VOID *arg)
-{
-	S32 conn_cur;
-	struct timeval tv;
-	
-	pthread_detach(pthread_self());
-	conn_cur = (S32)arg;
-	
-	rtp_send_packet(conn_cur);
-	
-	pthread_exit(NULL);
-}
+
 
 VOID *vd_rtcp_func(VOID *arg)
 {
+	printf("new thread vd_rtcp_func \n");
 	S32 len, cur_conn;
 	struct timeval tv;
 	struct rtcp_pkt pkt;
@@ -130,4 +133,50 @@ VOID *vd_rtcp_func(VOID *arg)
 
 	close(rtsp[cur_conn]->fd.video_rtcp_fd);
 	pthread_exit(NULL);
+}
+
+
+S32 proc_rtp(S32 cur_conn_num)
+{
+	if(create_vrtp_socket(rtsp[cur_conn_num]->cli_rtsp.cli_host,
+		rtsp[cur_conn_num]->cmd_port.rtp_cli_port,
+		SOCK_DGRAM,
+		cur_conn_num))
+	{
+		printf("Create vrtp socket error !\n");
+		rtsp[cur_conn_num]->rtspd_status = 0x13;
+		return -1;
+
+	}
+
+	rtsp[cur_conn_num]->rtspd_status = 0x14;
+	if(pthread_create(&rtsp[cur_conn_num]->pth.rtp_vthread, NULL, vd_rtp_func, (VOID*)cur_conn_num) <0)
+	{
+		printf("pthread_create rtcp error:\n");
+		return -1;
+	}
+	
+	return 0;
+}
+
+S32 proc_rtcp(S32 cur_conn_num)
+{
+	if(create_vrtcp_socket(rtsp[cur_conn_num]->cli_rtsp.cli_host,
+		rtsp[cur_conn_num]->cmd_port.rtcp_cli_port,
+		SOCK_DGRAM,
+		cur_conn_num))
+	{
+		printf("Create vrtcp socket error !\n");
+		rtsp[cur_conn_num]->rtspd_status = 0x17;
+		return -1;
+
+	}
+	rtsp[cur_conn_num]->rtspd_status = 0x18;
+	if(pthread_create(&rtsp[cur_conn_num]->pth.rtcp_vthread, NULL, vd_rtcp_func, (VOID*)cur_conn_num) < 0)
+	{
+		printf("pthread_create rtcp error \n");
+		return -1;
+	}
+	
+	return 0;
 }

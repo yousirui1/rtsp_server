@@ -4,6 +4,18 @@
 #include "../comm/type.h"
 
 
+UL64 get_randdom_seq(VOID)
+{
+    UL64 seed;
+    srand((unsigned)time(NULL));  
+    seed = 1 + (U32) (rand()%(0xFFFF)); 
+    
+    return seed;
+}
+
+
+
+
 /**********************************************************************
  *
  *  获取文件视频大小
@@ -87,6 +99,23 @@ L64 get_timestamp()
 	return ((L64)tv_date.tv_sec * 1000000 + (L64)tv_date.tv_usec);
 }
 
+S32 build_rtp_header(RTP_header *r, S32 cur_conn_num)
+{
+	r->version = 2;
+	r->padding = 0;
+	r->extension = 0;
+	r->csrc_len = 0;
+	r->marker = 0;
+	r->payload = 96;
+	r->seq_no = htons(rtsp[cur_conn_num]->cmd_port.seq);
+	rtsp[cur_conn_num]->cmd_port.timestamp += rtsp[cur_conn_num]->cmd_port.frame_rate_step;
+	r->timestamp = htonl(rtsp[cur_conn_num]->cmd_port.timestamp);
+	r->ssrc = htonl(rtsp[cur_conn_num]->cmd_port.ssrc);
+
+	return 0;
+}
+
+
 
 ssize_t write_n(S32 fd, const VOID *vptr, size_t n )
 {
@@ -114,6 +143,27 @@ ssize_t write_n(S32 fd, const VOID *vptr, size_t n )
 	return n;
 
 }
+
+/*********************************************************
+ *
+ *
+ *			RTP_header: rtp header struct
+ *			len: upd bufer len
+ *			cur_conn_num :current connect number
+ *
+ *
+ * *******************************************************/
+S32 udp_write(S32 len, S32 cur_conn_num)
+{
+	S32 result;
+	
+	result = write(rtsp[cur_conn_num]->fd.video_rtp_fd, rtsp[cur_conn_num]->nalu_buffer, len);
+	if(result <= 0)
+		rtsp[cur_conn_num]->rtspd_status = 0x21;
+
+	return 0;
+}
+
 
 S32 udp_write_fua(S32 len, S32 time, S32 cur_conn_num)
 {
@@ -177,22 +227,6 @@ S32 abstr_nalu_indic(U8 *buf, S32 buf_size, S32 *be_found)
 		frame_size = buf_size;
 
 	return frame_size;
-}
-
-S32 build_rtp_header(RTP_header *r, S32 cur_conn_num)
-{
-	r->version = 2;
-	r->padding = 0;
-	r->extension = 0;
-	r->csrc_len = 0;
-	r->marker = 0;
-	r->payload = 96;
-	r->seq_no = htons(rtsp[cur_conn_num]->cmd_port.seq);
-	rtsp[cur_conn_num]->cmd_port.timestamp += rtsp[cur_conn_num]->cmd_port.frame_rate_step;
-	r->timestamp = htonl(rtsp[cur_conn_num]->cmd_port.timestamp);
-	r->ssrc = htonl(rtsp[cur_conn_num]->cmd_port.ssrc);
-
-	return 0;
 }
 
 /********************************************************************************
@@ -301,26 +335,6 @@ S32 build_rtp_nalu(U8 *inbuffer, S32 frame_size, S32 cur_conn_num)
 }
 
 
-/*********************************************************
- *
- *
- *			RTP_header: rtp header struct
- *			len: upd bufer len
- *			cur_conn_num :current connect number
- *
- *
- * *******************************************************/
-S32 udp_write(S32 len, S32 cur_conn_num)
-{
-	S32 result;
-	
-	result = write(rtsp[cur_conn_num]->fd.video_rtp_fd, rtsp[cur_conn_num]->nalu_buffer, len);
-	if(result <= 0)
-		rtsp[cur_conn_num]->rtspd_status = 0x21;
-
-	return 0;
-}
-
 
 S32 rtp_send_from_file(S32 cur_conn_num)
 {
@@ -332,7 +346,9 @@ S32 rtp_send_from_file(S32 cur_conn_num)
 	S32 found_nalu = 0;
 	S32 reach_last_nalu = 0;
 		
-	infile = fopen(rtsp[0]->file_name, "rb");
+	//infile = fopen(rtsp[0]->file_name, "rb");
+	infile = fopen("./1.h264", "rb");
+	
 	if(infile == NULL)
 	{
 		printf("please check media file\n");
@@ -346,7 +362,7 @@ S32 rtp_send_from_file(S32 cur_conn_num)
 	}	
 
 	#ifdef WRITE_FILE
-	outfile = fopen("test_video.h264", "w");
+	outfile = fopen("1.h264", "w");
 	if(outfile == NULL)
 	{
 		printf("please check media file\n");
@@ -354,6 +370,7 @@ S32 rtp_send_from_file(S32 cur_conn_num)
 	}
 	#endif	
 
+	rtsp[cur_conn_num]->is_runing = 1;
 	while(rtsp[cur_conn_num]->is_runing)
 	{
 		bytes_left = fread(inbufs, 1, READ_LEN, infile);

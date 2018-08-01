@@ -1,5 +1,3 @@
-
-
 #include "../rtsp/rtsp.h"
 #include "../comm/type.h"
 
@@ -63,22 +61,12 @@ S32 free_memory()
 	return 0;
 }
 
-
-S32 set_free_conn_status(S32 cur_conn, S32 cur_status)
+S32 close_rtsp_fd()
 {
-	S32 i, j = 0;
-	
-	for(i = 0; i<MAX_CONN; i++)
-	{
-		if(i == cur_conn)
-		{
-			rtsp[i]->conn_status = cur_status;
-		}
-	}
-	
-	return 0;
-
+	close(rtsp[0]->fd.rtspfd);
 }
+
+
 
 VOID *vd_rtsp_procin(VOID *arg)
 {
@@ -160,38 +148,57 @@ S32 rtsp_cmd_match(S32 method, S32 cur_conn_num)
 		{
 			if(rtsp_options(cur_conn_num) <= 0)
 			{
-
+				printf("option command response not sucessful\n");
+				close(rtsp[cur_conn_num]->cli_rtsp.cli_fd);
+				rtsp[cur_conn_num]->rtspd_status= 0x01;
+				rtsp[cur_conn_num]->is_runing = 0;
+				sem_post(&rtspd_lock[cur_conn_num]);
+				return -1;;
+			
 			}
 			else
 			{
-
+				printf("options command response sucessful\n");
+				rtsp[cur_conn_num]->rtspd_status = 0x02;
 			}
 
 		}
 			break;
 		case 2:
 		{
-#if 0
 			if(rtsp_describe(cur_conn_num) <= 0)
 			{
-
+				printf("describe command response not sucessful\n");
+				close(rtsp[cur_conn_num]->cli_rtsp.cli_fd);
+				rtsp[cur_conn_num]->rtspd_status = 0x03;
+				rtsp[cur_conn_num]->is_runing = 0;
+				sem_post(&rtspd_lock[cur_conn_num]);
+				return -1;
 			}
 			else
 			{
-
+				printf("describe command response sucessful\n");
+				rtsp[cur_conn_num]->rtspd_status = 0x04;
 			}
-#endif
+
 		}
 			break;
 		case 3:
 		{
 			if(rtsp_setup(cur_conn_num) <= 0)
 			{
-
+				printf("setup command response not sucessful\n");
+				close(rtsp[cur_conn_num]->cli_rtsp.cli_fd);
+				rtsp[cur_conn_num]->rtspd_status = 0x05;
+				rtsp[cur_conn_num]->is_runing = 0;
+				sem_post(&rtspd_lock[cur_conn_num]);
+				return -1;
 			}
 			else
 			{
 
+				printf("setup command response sucessful\n");
+				rtsp[cur_conn_num]->rtspd_status = 0x06;
 			}
 		}
 			break;
@@ -199,11 +206,21 @@ S32 rtsp_cmd_match(S32 method, S32 cur_conn_num)
 		{
 			if(rtsp_play(cur_conn_num) <= 0)
 			{
-
+				printf("play command response not sucessful\n");
+				close(rtsp[cur_conn_num]->cli_rtsp.cli_fd);
+				rtsp[cur_conn_num]->rtspd_status = 0x07;
+				rtsp[cur_conn_num]->is_runing = 0;
+				sem_post(&rtspd_lock[cur_conn_num]);
+				return -1;
 			}
 			else
 			{
 
+				printf("play command response sucessful\n");
+				//deal with RTP RTCP agreement function
+				rtsp[cur_conn_num]->is_runing = 1;
+				rtsp[cur_conn_num]->rtspd_status = 0x08;
+				sem_post(&rtspd_lock[cur_conn_num]);
 			}
 		}
 			break;
@@ -212,23 +229,31 @@ S32 rtsp_cmd_match(S32 method, S32 cur_conn_num)
 		{
 			if(rtsp_terardown(cur_conn_num) <= 0)
 			{
-			
+				printf("terardown command response not sucessful\n");
+				close(rtsp[cur_conn_num]->cli_rtsp.cli_fd);
+				rtsp[cur_conn_num]->rtspd_status = 0x011;
+				rtsp[cur_conn_num]->is_runing = 0;
+				return -1;
 			}
 			else
 			{
 
+				printf("terardown command response sucessful\n");
+				rtsp[cur_conn_num]->is_runing = 0;	
+				close(rtsp[cur_conn_num]->cli_rtsp.cli_fd);
+				rtsp[cur_conn_num]->rtspd_status = 0x12;
+				return -1;
 			}
 		}
 			break;
 
 		default:
-			printf("");
+			printf("not match rtsp command\n");
 			break;
 		
 			
 	}
 }
-
 
 
 /**********************************************************
@@ -240,8 +265,10 @@ S32 rtsp_cmd_match(S32 method, S32 cur_conn_num)
  * 返回值
  * 其他说明
  **********************************************************/
+
 void *vd_rtsp_proc(void *arg)
 {
+	printf("new thread vd_rtsp_proc\n");
 	S32 method, free_conn = 0;
 	
 	pthread_detach(pthread_self());
@@ -250,6 +277,7 @@ void *vd_rtsp_proc(void *arg)
 		
 	while(1)
 	{
+		printf("tcp_read\n");
 		if(tcp_read(rtsp[free_conn]->cli_rtsp.cli_fd,
 			rtsp[free_conn]->in_buffer, sizeof(rtsp[free_conn]->in_buffer)) < 0)
 		{
@@ -270,11 +298,30 @@ void *vd_rtsp_proc(void *arg)
 			sem_post(&rtspd_semop);
 		}
 		
-		
 	}
 
 QUIT:
 	pthread_exit(NULL);
+}
+
+
+
+
+
+S32 set_free_conn_status(S32 cur_conn, S32 cur_status)
+{
+	S32 i, j = 0;
+	
+	for(i = 0; i<MAX_CONN; i++)
+	{
+		if(i == cur_conn)
+		{
+			rtsp[i]->conn_status = cur_status;
+		}
+	}
+	
+	return 0;
+
 }
 
 S32 get_free_conn_status()
@@ -344,6 +391,7 @@ S32 tcp_read(S32 fd, void  *buf, S32 length)
 		
 	while(1)
 	{
+		
 		bytes_read = read(fd, ptr, bytes_left);	
 		if(bytes_read < 0)
 		{

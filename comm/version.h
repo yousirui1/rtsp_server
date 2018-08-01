@@ -6,6 +6,6 @@
 
 #define RTSPD_VERSION 0x01000000
 
-//S32 convert_iver_2str(CHAR *sver);
+S32 convert_iver_2str(CHAR *sver);
 
 #endif
