@@ -1,0 +1,96 @@
+autoscan: warning: missing AC_CHECK_FUNCS([gethostbyname]) wanted by: 
+	rtsp/rtsp_describe.c:198
+autoscan: warning: missing AC_CHECK_FUNCS([gethostname]) wanted by: 
+	rtsp/rtsp_describe.c:97
+	rtsp/rtsp_describe.c:197
+autoscan: warning: missing AC_CHECK_FUNCS([gettimeofday]) wanted by: 
+	rtcp/random32.c:209
+	rtsp/rtsp_setup.c:67
+autoscan: warning: missing AC_CHECK_FUNCS([inet_ntoa]) wanted by: 
+	net/socket.c:228
+autoscan: warning: missing AC_CHECK_FUNCS([socket]) wanted by: 
+	rtp/udp.c:39
+	rtp/udp.c:86
+	net/socket.c:108
+autoscan: warning: missing AC_CHECK_FUNCS([strcasecmp]) wanted by: 
+	rtsp/rtsp_describe.c:38
+	rtsp/rtsp_describe.c:41
+autoscan: warning: missing AC_CHECK_FUNCS([strrchr]) wanted by: 
+	rtsp/rtsp_comm_fun.c:114
+autoscan: warning: missing AC_CHECK_FUNCS([strstr]) wanted by: 
+	rtsp/rtsp_comm_fun.c:37
+	rtsp/rtsp_comm_fun.c:78
+	rtsp/rtsp_comm_fun.c:104
+	rtsp/rtsp_comm_fun.c:109
+	rtsp/rtsp_teardown.c:84
+	rtsp/rtsp_play.c:86
+	rtsp/rtsp_setup.c:183
+	rtsp/rtsp_setup.c:183
+	rtsp/rtsp_setup.c:188
+	rtsp/rtsp_setup.c:197
+	rtsp/rtsp_setup.c:198
+	rtsp/rtsp_setup.c:199
+	rtsp/rtsp_setup.c:201
+	rtsp/rtsp_describe.c:296
+	rtsp/rtsp_describe.c:301
+	rtsp/rtsp_describe.c:302
+autoscan: warning: missing AC_CHECK_FUNCS([uname]) wanted by: 
+	rtcp/random32.c:210
+	rtsp/rtsp_setup.c:68
+autoscan: warning: missing AC_CHECK_HEADERS([arpa/inet.h]) wanted by: 
+	rtspd.c:25
+	rtsp/rtsp.h:9
+autoscan: warning: missing AC_CHECK_HEADERS([netdb.h]) wanted by: 
+	rtsp/rtsp.h:12
+autoscan: warning: missing AC_CHECK_HEADERS([netinet/in.h]) wanted by: 
+	rtspd.c:24
+	rtsp/rtsp.h:8
+autoscan: warning: missing AC_CHECK_HEADERS([stdint.h]) wanted by: 
+	rtcp/random32.c:26
+autoscan: warning: missing AC_CHECK_HEADERS([stdlib.h]) wanted by: 
+	rtsp/rtsp.h:10
+autoscan: warning: missing AC_CHECK_HEADERS([string.h]) wanted by: 
+	rtcp/rtcp.c:3
+	rtsp/rtsp.h:5
+autoscan: warning: missing AC_CHECK_HEADERS([sys/socket.h]) wanted by: 
+	rtspd.c:23
+	rtsp/rtsp.h:7
+autoscan: warning: missing AC_CHECK_HEADERS([sys/time.h]) wanted by: 
+	rtcp/random32.c:25
+autoscan: warning: missing AC_CHECK_HEADERS([unistd.h]) wanted by: 
+	rtspd.c:26
+	rtcp/random32.c:32
+autoscan: warning: missing AC_C_CONST wanted by: 
+	rtcp/random32.c:74
+	rtcp/random32.c:81
+	rtcp/random32.c:151
+	rtcp/random32.c:151
+	rtcp/random32.c:180
+	rtcp/random32.c:180
+	rtp/udp.c:32
+	rtp/udp.c:79
+	rtsp/rtsp_describe.c:60
+	net/socket.c:97
+	net/socket.c:97
+autoscan: warning: missing AC_FUNC_STRFTIME wanted by: 
+	rtsp/rtsp_describe.c:124
+autoscan: warning: missing AC_HEADER_STDC wanted by: 
+	rtsp/rtsp.h:10
+	rtcp/rtcp.c:3
+	rtsp/rtsp.h:5
+autoscan: warning: missing AC_HEADER_TIME wanted by: 
+	rtcp/random32.c:200
+	rtp/udp.c:143
+	rtsp/rtsp_setup.c:58
+autoscan: warning: missing AC_STRUCT_TM wanted by: 
+	rtsp/rtsp_describe.c:115
+autoscan: warning: missing AC_TYPE_PID_T wanted by: 
+	rtcp/random32.c:202
+	rtsp/rtsp_setup.c:60
+autoscan: warning: missing AC_TYPE_SIGNAL wanted by: 
+	rtspd.c:60
+autoscan: warning: missing AC_TYPE_UID_T wanted by: 
+	rtcp/random32.c:205
+	rtsp/rtsp_setup.c:63
+	rtcp/random32.c:204
+	rtsp/rtsp_setup.c:62

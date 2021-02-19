@@ -1,18 +1,35 @@
+/*******
+ * 
+ * FILE INFO: software called entrance 
+ * project:	rtsp server
+ * file:	rtsp/rtp/rtcp
+ * started on:	2011/01/28 15:14:26
+ * started by:	kingersun  
+ * email:  kingersun@163.com
+ * 
+ * TODO:
+ * 
+ * BUGS:
+ * 
+ * UPDATE INFO:
+ * updated on:	2011/01/28 16:18:24
+ * updated by:	kingersun
+ * version: 1.0.0.0
+ * 
+ *******/
+ 
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <signal.h>
 #include "./rtsp/rtsp.h"
 #include "rtspd_api.h"
+#include "net/socket.h"
 #include "rtp/udp.h"
 #include "comm/type.h"
-#include "./net/socket.h"
-
-
 
 pthread_cond_t rtspd_cond;
 sem_t rtspd_semop;
@@ -20,93 +37,106 @@ sem_t rtspd_lock[MAX_CONN];
 sem_t rtspd_accept_lock;
 pthread_mutex_t rtspd_mutex;
 
-//extern S32 create_vrtcp_socket(const CHAR *host, S32 port,S32 type,S32 cur_conn_num);
 
+/* 
+   signal SIGINT handler
+*/
 VOID sig_exit(VOID)
 {
+	// just interrupt the pause()
 	return;
 }
 
-/*****************************************************
- *rtsp protocol processing entry function
- *
- *ser_ip: rtsp server socket listen ip
- *ser_port : rtsp server socket listen port defult 554
- *
- * **************************************************/
 
-S32 proc_rtspd(CHAR *rtsp_ip, S32 rtsp_port)
+
+
+/******************************************************************************/
+/*
+ *rtsp protocol processing entry function
+ 
+ * ser_ip:  rtsp server socket  listen ip 
+ * ser_port:  rtsp server socket  listen port default 554
+ */
+/******************************************************************************/
+S32 proc_rtspd(CHAR *rtsp_ip,S32 rtsp_port)
 {
-	CHAR port[128] = "";
-		
-	if(parse_sys_conf("./rtspd.conf") < 0)
-	{
+	CHAR port[128]="";
+
+	#if 0
+	if(parse_sys_conf("./rtspd.conf")<0){
 		printf("please check rtspd.conf \n");
 		return -1;
 	}
-	
-	strcpy(rtsp[0]->host_name, rtsp_ip);
-	rtsp[0]->rtsp_deport = rtsp_port;
-	sprintf(port, "%d", rtsp[0]->rtsp_deport);
-	if(create_sercmd_socket(rtsp[0]->host_name, port, SOCK_STREAM)<0)
-		return -1;	
-	
+	#endif
+	strcpy(rtsp[0]->host_name,rtsp_ip);
+	rtsp[0]->rtsp_deport=rtsp_port;
+	sprintf(port,"%d",rtsp[0]->rtsp_deport);
+	if(create_sercmd_socket(rtsp[0]->host_name,port,SOCK_STREAM)<0)
+		return -1;
+
 	return 0;
 }
 
-
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	getrtspd_version	  
+ 	º¯Êı¹¦ÄÜ:	Á÷Ã½ÌåÄ£¿é³õÊ¼»¯	 
+ 	ÊäÈë²ÎÊı:	
+ 		version: Á÷Ã½Ìå°æ±¾ºÅ
+ 	Êä³ö²ÎÊı:	ÎŞ  
+ 	·µ»ØÖµ:		=0	³É¹¦	<0	Ê§°Ü	
+ 	ÆäËüËµÃ÷:    ·ÖÅäÄÚ´æ
+******************************************************************************/
 S32 getrtspd_version(CHAR *version)
 {
 	if(!version)
 		return -1;
-
-	if(convert_iver_2str(version) < 0)
+	if(convert_iver_2str(version)<0)
 		return -1;
-	return 0;	
+	return 0;
 }
 
-/**************************************************
- * å‡½æ•°åç§°: rtspd_init
- * å‡½æ•°åŠŸèƒ½: æµåª’ä½“æ¨¡å—åˆå§‹åŒ–
- * è¾“å…¥å‚æ•°: NULL
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  = 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜: åˆ†é…å†…å­˜
- * ************************************************/
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtspd_init	  
+ 	º¯Êı¹¦ÄÜ:	Á÷Ã½ÌåÄ£¿é³õÊ¼»¯	 
+ 	ÊäÈë²ÎÊı:	ÎŞ
+ 	Êä³ö²ÎÊı:	ÎŞ  
+ 	·µ»ØÖµ:		=0	³É¹¦	<0	Ê§°Ü	
+ 	ÆäËüËµÃ÷:    ·ÖÅäÄÚ´æ
+******************************************************************************/
 S32 rtspd_init()
 {
 	S32 res;
-	if(init_memory() < 0)
-	{
+	
+	if(init_memory()<0){
 		printf("init rtspd memory error\n");
-		return -1;	
-	}
-		
-	//åˆå§‹åŒ–ä¸€ä¸ªå®šä½åœ¨ sem çš„åŒ¿åä¿¡å·é‡
-	//	è¿›ç¨‹å†…çº¿ç¨‹å…±äº«  åˆå§‹å€¼
-	sem_init(&rtspd_semop, 0 ,1);
-	sem_init(&rtspd_accept_lock, 0 , 0);	
-
-	res = pthread_mutex_init(&rtspd_mutex, NULL); //äº’æ–¥é”åˆå§‹åŒ–
-	if(res != 0)
-	{
-		perror("Mutex initialization failed");
 		return -1;
 	}
+	
+	sem_init(&rtspd_semop, 0, 1);
+	sem_init(&rtspd_accept_lock, 0, 0);
+    res = pthread_mutex_init(&rtspd_mutex, NULL);
+    if (res != 0) {
+        perror("Mutex initialization failed");
+        return -1;
+    }
 
-	//åˆå§‹åŒ–æ¡ä»¶å˜é‡
 	(void) pthread_cond_init(&rtspd_cond, NULL);
+
+	return 0;
 }
 
 
-/*****************************************************
- * å‡½æ•°åç§°: rtspd_free
- * å‡½æ•°åŠŸèƒ½: æµåª’ä½“æ¨¡å—é‡Šæ”¾
- * è¾“å…¥å‚æ•°: NULL
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  = 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜: é‡Šæ”¾å†…å­˜
- * ************************************************/
+
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtspd_free	  
+ 	º¯Êı¹¦ÄÜ:	Á÷Ã½ÌåÄ£¿éÊÍ·Å	 
+ 	ÊäÈë²ÎÊı:	ÎŞ  
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		=0	³É¹¦	<0	Ê§°Ü	
+ 	ÆäËüËµÃ÷:    ÊÍ·ÅÄÚ´æ
+******************************************************************************/
 S32 rtspd_free()
 {
 	rtsp_free();
@@ -118,389 +148,388 @@ S32 rtspd_free()
 	return 0;
 }
 
-
-/*****************************************************
- * å‡½æ•°åç§°: rtspd_staus
- * å‡½æ•°åŠŸèƒ½: è·å–æµåª’ä½“è¿è¡ŒçŠ¶æ€
- * è¾“å…¥å‚æ•°: free_chn: ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  = 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
-S32 rtspd_status(S32 free_chn)
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtspd_staus	  
+ 	º¯Êı¹¦ÄÜ:	»ñÈ¡Á÷Ã½ÌåÔËĞĞ×´Ì¬	 
+ 	ÊäÈë²ÎÊı:
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		=0	³É¹¦	<0	Ê§°Ü	
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
+S32 rtspd_staus(S32 free_chn)
 {
 	return rtsp[free_chn]->rtspd_status;
 }
 
-
-/*****************************************************
- * å‡½æ•°åç§°: rtspd_freechn
- * å‡½æ•°åŠŸèƒ½: è·å–æµåª’ä½“ç©ºé—²é€šé“å·
- * è¾“å…¥å‚æ•°: NULL
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtspd_freechn	  
+ 	º¯Êı¹¦ÄÜ:	»ñÈ¡Á÷Ã½Ìå¿ÕÏĞÍ¨µÀºÅ	 
+ 	ÊäÈë²ÎÊı:
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 	          >=0  ¿ÕÏĞÍ¨µÀºÅ
+ 	          < 0   »ñÈ¡¿ÕÏĞÍ¨µÀºÅÊ§°Ü
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtspd_freechn()
 {
-	S32 i, j =0;
+	S32 i,j=0;
 	//sem_wait(&rtspd_accept_lock);
-	
 	pthread_mutex_lock(&rtspd_mutex);
-	pthread_cond_wait(&rtspd_cond, &rtspd_mutex); //æ— æ¡ä»¶ç­‰å¾…
+	pthread_cond_wait(&rtspd_cond,&rtspd_mutex);
 	pthread_mutex_unlock(&rtspd_mutex);
-	
-	for(i = 0; i<MAX_CONN; i++)
-	{
-		if(rtsp[i]->conn_status == 0)
-			return i;
-	}	
-	return -1;
-}
-
-
-/*****************************************************
- * å‡½æ•°åç§°: rtsp_init
- * å‡½æ•°åŠŸèƒ½: rtspåˆå§‹åŒ–
- * è¾“å…¥å‚æ•°: 
- * 			rtsp_ip ç›‘å¬IPåœ°å€
- * 			rtsp_port ç›‘å¬ç«¯å£
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
-S32 rtsp_init(CHAR *rtsp_ip, S32 rtsp_port)
-{
-	if(proc_rtspd(rtsp_ip, rtsp_port)< 0 )
-	{
-		printf("rtsp_init fail\n");
-		return -1;
+	for(i=0;i<MAX_CONN;i++){
+		if(rtsp[i]->conn_status==0){
+			return i;	
+		}
 	}
-	printf("rtsp_init successful\n");
-	return 0;
+	return -1;	
 
 }
 
-/*****************************************************
- * å‡½æ•°åç§°: rtsp_free
- * å‡½æ•°åŠŸèƒ½: rtspåˆå§‹åŒ–
- * è¾“å…¥å‚æ•°: NULL
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜: å»ºç«‹ç›‘å¬rtsp server ç«¯å£
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtsp_init	  
+ 	º¯Êı¹¦ÄÜ:	rtsp³õÊ¼»¯	 
+ 	ÊäÈë²ÎÊı:
+ 		rtsp_ip:   Á÷Ã½Ìå¼àÌıIP µØÖ·
+ 		rtsp_port: Á÷Ã½Ìå¼áÍ¦¶Ë¿Ú
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ³õÊ¼»°rtsp³É¹¦
+ 				 <0  ³õÊ¼»°rtspÊ§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
+S32 rtsp_init(CHAR *rtsp_ip,S32 rtsp_port)
+{
+	if(proc_rtspd(rtsp_ip,rtsp_port)<0){
+		return -1;
+	}	
+	return 0;
+}
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtsp_free	  
+ 	º¯Êı¹¦ÄÜ:	rtsp³õÊ¼»¯	 
+ 	ÊäÈë²ÎÊı:
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ³õÊ¼»°rtsp³É¹¦
+ 				 <0  ³õÊ¼»°rtspÊ§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    ½¨Á¢¼àÌırtsp server ¶Ë¿Ú
+******************************************************************************/
 S32 rtsp_free()
 {
-#if 0
-	rtsp[0] ->fd.rtspfd;
-#endif
+	rtsp[0]->fd.rtspfd;
+	return 0;
+}
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	set_framerate	  
+ 	º¯Êı¹¦ÄÜ:	ÉèÖÃÁ÷Ã½Ìå·¢ËÍÖ¡ÂÊ
+ 	ÊäÈë²ÎÊı:
+ 		f_rate:      Ö¡ÂÊ
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ·¢ËÍÊı¾İÊ§°Ü
+ 				 <0  ·¢ËÍÊı¾İ³É¹¦
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
+S32 set_framerate(S32 f_rate,S32 free_chn)
+{
+	switch(f_rate){
+		case 25:
+			rtsp[free_chn]->cmd_port.frame_rate_step=3600;
+			break;
+			
+		case 30:
+			rtsp[free_chn]->cmd_port.frame_rate_step=3000;
+			break;
+			
+		default: 
+			printf("Default frame rate 25 fpbs\n");
+			rtsp[free_chn]->cmd_port.frame_rate_step=3600;
+			break;
+	}
 	return 0;
 }
 
 
-/*****************************************************
- * å‡½æ•°åç§°: set_framerate
- * å‡½æ•°åŠŸèƒ½: è®¾ç½®æµåª’ä½“å‘é€å¸§ç‡
- * è¾“å…¥å‚æ•°: 
- * 			 f_rate: å¸§ç‡
- * 			 free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜: 
- * *************************************************/
-S32 set_framerate(S32 f_rate, S32 free_chn)
-{
-
-	printf("set_framerate\n");
-	switch(f_rate)
-	{
-		case 25:
-		{
-			rtsp[free_chn]->cmd_port.frame_rate_step = 3600;
-		}
-		break;
-		
-		case 30:
-		{
-			rtsp[free_chn]->cmd_port.frame_rate_step = 3000;
-		}
-		break;
-		
-		defult:
-		{
-			printf("Default frame rate 25 fpbs\n");
-			rtsp[free_chn]->cmd_port.frame_rate_step = 3600;
-		}
-		break;
-
-	}
-}
-
-
-/*****************************************************
- * å‡½æ•°åç§°: rtsp_proc
- * å‡½æ•°åŠŸèƒ½: rtspåè®®å‘½ä»¤è¡Œè§£æå¤„ç†
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtsp_proc	  
+ 	º¯Êı¹¦ÄÜ:	rtspĞ­ÒéÃüÁîĞĞ½âÎö´¦Àí
+ 	ÊäÈë²ÎÊı:
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ÃüÁî½âÎöÄ£¿éµ÷ÓÃ³É¹¦
+ 				 <0  ÃüÁî½âÎöÄ£¿éµ÷ÓÃÊ§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/ 
 S32 rtsp_proc(S32 free_chn)
 {
-	if(pthread_create(&rtsp[free_chn]->pth.rtsp_vthread, NULL, vd_rtsp_proc, (VOID *)free_chn) < 0)
-	{
-		printf("pthread_create vd_rtsp_proc thread error \n");
+
+	if(pthread_create(&rtsp[free_chn]->pth.rtsp_vthread, NULL, vd_rtsp_proc,(VOID *)free_chn) < 0){				
+		printf("pthread_create vd_rtsp_proc thread error\n");
 		return -1;
 	}
 	
 	return 0;
 }
 
-/*****************************************************
- * å‡½æ•°åç§°: rtp_init
- * å‡½æ•°åŠŸèƒ½: rtpåè®®åˆå§‹åŒ–
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtp_init	  
+ 	º¯Êı¹¦ÄÜ:	rtpĞ­Òé³õÊ¼»¯
+ 	ÊäÈë²ÎÊı:
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 rtpĞ­Òé³õÊ¼»¯³É¹¦
+ 				 <0  rtpĞ­Òé³õÊ¼»¯Ê§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtp_init(S32 free_chn)
-{
-	printf("rtp_init \ n");
+{	
 	S32 ret;
 	sem_wait(&rtspd_lock[free_chn]);
-	ret = rtspd_status(free_chn);
-	
-	if(ret != 8)
-	{
-		printf("");
+	ret=rtspd_staus(free_chn);
+	if(ret!=8){
+		printf("Waring: rtsp chn[%d] status is %x\n",free_chn,ret);
 		return -1;
 	}
-
+	
 	if(create_vrtp_socket(rtsp[free_chn]->cli_rtsp.cli_host,
-			rtsp[free_chn]->cmd_port.rtp_cli_port,
-			SOCK_DGRAM,
-			free_chn))
+		rtsp[free_chn]->cmd_port.rtp_cli_port,
+		SOCK_DGRAM,
+		free_chn))
 	{
-		printf("Create vrtp socket error!\n");
-		rtsp[free_chn]->rtspd_status = 0x13;
+	    printf("Create vrtp socket error!\n");
+		rtsp[free_chn]->rtspd_status=0x13;
 		return -1;
-	}
+	}	
+	rtsp[free_chn]->rtspd_status=0x14;
 
-	rtsp[free_chn]->rtspd_status = 0x14;
-	
+
 	return 0;
 }
 
-
-/*****************************************************
- * å‡½æ•°åç§°: send_file
- * å‡½æ•°åŠŸèƒ½: é€šè¿‡æ–‡ä»¶å‘é€æ•°æ®çš„å‡½æ•°æ¥å£
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	send_file	  
+ 	º¯Êı¹¦ÄÜ:	Í¨¹ıÎÄ¼ş·¢ËÍÊı¾İµÄº¯Êı½Ó¿Ú
+ 	ÊäÈë²ÎÊı:
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ·¢ËÍÊı¾İÊ§°Ü
+ 				 <0  ·¢ËÍÊı¾İ³É¹¦
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 send_file(S32 free_chn)
 {
-	//åˆ›å»ºä¸€ä¸ªæ–°çº¿ç¨‹
-	if(pthread_create(&rtsp[free_chn]->pth.rtp_vthread, NULL, vd_rtp_func, (VOID *)free_chn) < 0)
-	{
+	if (pthread_create(&rtsp[free_chn]->pth.rtp_vthread,NULL,vd_rtp_func,(VOID *)free_chn)<0){
 		printf("pthread_create rtcp error:\n");
 		return -1;
 	}
+
 	return 0;
 }
 
 
-/*****************************************************
- * å‡½æ•°åç§°: rtp_free
- * å‡½æ•°åŠŸèƒ½: rtpåè®®æ³¨é”€
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtp_free	  
+ 	º¯Êı¹¦ÄÜ:	rtpĞ­Òé×¢Ïú
+ 	ÊäÈë²ÎÊı:
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 rtpĞ­Òé³õÊ¼»¯³É¹¦
+ 				 <0  rtpĞ­Òé³õÊ¼»¯Ê§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtp_free(S32 free_chn)
 {
 	close(rtsp[free_chn]->fd.video_rtp_fd);
 	return 0;
 }
 
-/*****************************************************
- * å‡½æ•°åç§°: rtcp_init
- * å‡½æ•°åŠŸèƒ½: rtcpåè®®åˆå§‹åŒ–
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  >= 0 æˆåŠŸ <0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtcp_init	  
+ 	º¯Êı¹¦ÄÜ:	rtcpĞ­Òé³õÊ¼»¯
+ 	ÊäÈë²ÎÊı:
+ 		freechn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 rtcpĞ­Òé³õÊ¼»¯³É¹¦
+ 				 <0  rtcpĞ­Òé³õÊ¼»¯Ê§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtcp_init(S32 free_chn)
 {
-	printf("rtcp_init");
 	if(create_vrtcp_socket(rtsp[free_chn]->cli_rtsp.cli_host,
-			rtsp[free_chn]->cmd_port.rtcp_cli_port,
-			SOCK_DGRAM,
-			free_chn))
+		rtsp[free_chn]->cmd_port.rtcp_cli_port,
+		SOCK_DGRAM,
+		free_chn))
 	{
-		printf("Create vrtcp socket error!\n");
-		rtsp[free_chn]->rtspd_status = 0x17;
+	    printf("Create vrtcp socket error!\n");
+		rtsp[free_chn]->rtspd_status=0x17;
 		return -1;
 	}
-	rtsp[free_chn]->rtspd_status = 0x18;
-	if(pthread_create(&rtsp[free_chn]->pth.rtcp_vthread, NULL, vd_rtcp_func, (VOID*)free_chn)< 0)
-	{
+	rtsp[free_chn]->rtspd_status=0x18;
+	if (pthread_create(&rtsp[free_chn]->pth.rtcp_vthread, NULL, vd_rtcp_func,(VOID *)free_chn) < 0){			
 		printf("pthread_create rtcp error:\n");
 		return -1;
 	}	
 	return 0;
+
 }
 
-/*****************************************************
- * å‡½æ•°åç§°: rtspd_vtype
- * å‡½æ•°åŠŸèƒ½: rtspæ•°æ®æµè®¿é—®æ–¹å¼
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  
- * 			0 H264æ–‡ä»¶è®¿é—®
- * 			1 PSæ–‡ä»¶è®¿é—®
- * 			2 å®æ—¶æµæ–¹å¼
- *
- * 			<0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtspd_vtype	  
+ 	º¯Êı¹¦ÄÜ:	rtspÊı¾İÁ÷·ÃÎÊ·½Ê½
+ 	ÊäÈë²ÎÊı:
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+				0	H264ÎÄ¼ş·½Ê½·ÃÎÊ
+				1	PSÎÄ¼ş·ÃÎÊ
+				2	ÊµÊ±Á÷·½Ê½·ÃÎÊ
+        <0 Ê§°Ü
+					
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtspd_vtype(S32 free_chn)
 {
+	
 	return rtsp[free_chn]->vist_type;
 }
 
-/*****************************************************
- * å‡½æ•°åç§°: rtcp_free
- * å‡½æ•°åŠŸèƒ½: rtcpåè®®æ³¨é”€
- * è¾“å…¥å‚æ•°: 
- * 			free_chn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  
- * 			>=0 rtpæ³¨é”€æˆåŠŸ
- * 			<0 å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
-S32 rtcp_free(S32 free_chn)
-{
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtcp_free	  
+ 	º¯Êı¹¦ÄÜ:	rtcpĞ­Òé×¢Ïú
+ 	ÊäÈë²ÎÊı:
+ 		freechn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 rtpĞ­Òé³õÊ¼»¯³É¹¦
+ 				 <0  rtpĞ­Òé³õÊ¼»¯Ê§°Ü
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
+S32 rtcp_free(S32 free_chn){
 	close(rtsp[free_chn]->fd.video_rtcp_fd);
-	rtsp[free_chn]->is_runing = 0;
+	rtsp[free_chn]->is_runing=0;
 }
 
 
-/*****************************************************
- * å‡½æ•°åç§°: rtp_svpactet
- * å‡½æ•°åŠŸèƒ½: å‘é€è§†é¢‘æ•°æ®å‡½æ•°æ¥å£
- * è¾“å…¥å‚æ•°: 
- * 			buff: 		ä¸€å¸§è§†é¢‘æ•°æ®buf
- * 			framesize:  ä¸€å¸§æ•°æ®é•¿åº¦
- * 			free_chn:	ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  
- * 			>=0 å‘é€æ•°æ®æˆåŠŸ
- * 			<0  å‘é€æ•°æ®å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
-S32 rtp_svpactet(U8 *buff, S32 framesize, S32 free_chn)
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtp_svpactet	  
+ 	º¯Êı¹¦ÄÜ:	·¢ËÍÊÓÆµÊı¾İº¯Êı½Ó¿Ú
+ 	ÊäÈë²ÎÊı:
+ 		buff:      Ò»Ö¡ÊÓÆµÊı¾İbuf
+ 		framesize: Ò»Ö¡Êı¾İ³¤¶È
+ 		free_chn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ·¢ËÍÊı¾İÊ§°Ü
+ 				 <0  ·¢ËÍÊı¾İ³É¹¦
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
+S32 rtp_svpactet(U8 *buff ,S32 framesize,S32 free_chn)
 {
 	if(!buff)
 		return -1;
 	
-	if(build_rtp_nalu(buff, framesize, free_chn)<0)
-	{
-		printf("send video packet error \n");
+	if(build_rtp_nalu(buff, framesize, free_chn)<0){
+		printf("send video packet error\n");
 		return -1;
 	}
-	
 	return 0;
 }
 
-/*****************************************************
- * å‡½æ•°åç§°: rtsp_freeall
- * å‡½æ•°åŠŸèƒ½: é‡Šæ”¾rtp rtcpæ•°æ®é€šé“
- * è¾“å…¥å‚æ•°: NULL
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  
- * 			>=0 å‘é€æ•°æ®æˆåŠŸ
- * 			<0  å‘é€æ•°æ®å¤±è´¥
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtsp_freeall	  
+ 	º¯Êı¹¦ÄÜ:	ÊÍ·Årtp rtcpÊı¾İÍ¨µÀ
+ 	ÊäÈë²ÎÊı:
+
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 >=0 ·¢ËÍÊı¾İÊ§°Ü
+ 				 <0  ·¢ËÍÊı¾İ³É¹¦
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtsp_freeall()
 {
-	S32 free_chn, i;
-	
-	for(i = 0; i<MAX_CONN; i++)
-	{
-		if(rtsp[free_chn]->is_runing)
-		{
+	S32 free_chn,i;
+
+	for(i=0;i<MAX_CONN;i++){
+		if(rtsp[free_chn]->is_runing){
 			rtp_free(free_chn);
 			rtcp_free(free_chn);
 		}
-	}	
+	}
+
 	return 0;
 }
-/*****************************************************
- * å‡½æ•°åç§°: rtspd_chn_quit
- * å‡½æ•°åŠŸèƒ½: rtspd æ•°æ®é€šé“æ–­å¼€çŠ¶æ€åˆ¤æ–­
- * è¾“å…¥å‚æ•°: 
- * 			freechn ç©ºé—²é€šé“å·
- * è¾“å‡ºå‚æ•°: NULL
- * è¿”å›å€¼:  
- * 			=0  æ•°æ®é€šé“å·²æ–­å¼€
- * 			=1  æ•°æ®é€šé“æ­£åœ¨ä½¿ç”¨
- * å…¶ä»–è¯´æ˜:
- * *************************************************/
+
+/******************************************************************************	
+ 	º¯ÊıÃû³Æ:	rtspd_chn_quit	  
+ 	º¯Êı¹¦ÄÜ:	rtspd Êı¾İÍ¨µÀ¶Ï¿ª×´Ì¬ÅĞ¶Ï
+ 	ÊäÈë²ÎÊı:
+ 		freechn: ¿ÕÏĞÍ¨µÀºÅ 
+ 	Êä³ö²ÎÊı:	ÎŞ
+ 	·µ»ØÖµ:		
+ 				 =0  Êı¾İÍ¨µÀÒÑ¶Ï¿ª
+ 				 =1 Êı¾İÍ¨µÀÕıÔÚÊ¹ÓÃ
+ 									
+ 	ÆäËüËµÃ÷:    
+******************************************************************************/
 S32 rtspd_chn_quit(S32 free_chn)
 {
-
 	return rtsp[free_chn]->is_runing;
 }
 
 
 S32 main()
 {
-	S32 free_chn, vist_type;
+	S32 free_chn,vist_type;
 	CHAR version[32];
-	
 	signal(SIGINT, (VOID*)sig_exit);
-	
+
 	getrtspd_version(version);
-	printf("rtspd version is %s\n", version);
+	printf("rtspd version is %s\n",version);
 		
 	rtspd_init();
-	rtsp_init("192.168.254.222", 5554);
-	free_chn = rtspd_freechn();
-	set_framerate(25, free_chn);
-
+	rtsp_init("192.168.1.169" ,554);
+	free_chn=rtspd_freechn();
+	set_framerate(25,free_chn);
 	rtsp_proc(free_chn);
-
 	rtp_init(free_chn);
 	rtcp_init(free_chn);
-
-
-	vist_type = rtspd_vtype(free_chn);
-	
-	if(!vist_type)
-	{
+	vist_type=rtspd_vtype(free_chn);
+	if(!vist_type){
 		send_file(free_chn);
 	}
 
 	pause();
-	printf("rtspd start release resource\n");
+	printf("rtspd start release resources\n");
 	rtp_free(free_chn);
 	rtcp_free(free_chn);
 	rtsp_free();
 	rtspd_free();
-
+		
 	return 0;
 }

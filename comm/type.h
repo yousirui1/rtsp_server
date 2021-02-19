@@ -1,63 +1,85 @@
+/******************************************************************************
+
+    文件名  type.h
+    作  者  孙竞  kingersun@163.com
+    版  本  1.00
+    日  期  2012-8-9
+    描  述  公共数据类型定义
+
+
+    TAB=4空格
+
+    历史修改记录
+    <作者>  <时间>      <版本>  <描述>
+    孙竞    2012-8-09    1.00    创建
+
+******************************************************************************/
 #ifndef __TYPE_H__
 #define __TYPE_H__
 
 
-
 #ifdef __cplusplus
-#if	__cplusplus
+#if __cplusplus
 extern "C"{
 #endif
-#endif
+#endif /* __cplusplus */
 
-typedef unsigned char 			U8;
-typedef unsigned char 			UCHAR;
-typedef unsigned short 			U16;
-typedef unsigned int			U32;
+/*----------------------------------------------*
+ * The common data type, will be used in the whole project.*
+ *----------------------------------------------*/
 
-typedef signed char 			S8;
-typedef short 					S16;
-typedef int						S32;
+typedef unsigned char           U8;
+typedef unsigned char           UCHAR;
+typedef unsigned short          U16;
+typedef unsigned int            U32;
+
+typedef signed char             S8;
+typedef short                   S16;
+typedef int                     S32;
 
 #ifndef _M_IX86
-typedef unsigned long long 		U64;
-typedef long long 				S64;
+typedef unsigned long long      U64;
+typedef long long               S64;
 #else
-typedef __int64					U64;
-typedef __int64					S64;
+typedef __int64                   U64;
+typedef __int64                   S64;
 #endif
 
-typedef char 					CHAR;
-typedef char 					PCHAR;
+typedef char                    CHAR;
+typedef char*                   PCHAR;
 
-typedef float 					FLOAT;
-typedef double					DOUBLE;
-typedef void 					VOID;
+typedef float                   FLOAT;
+typedef double                  DOUBLE;
+typedef void                    VOID;
 
-typedef unsigned long			UL64;
-typedef long 					L64;
+typedef unsigned long           UL64;
+typedef long                    L64;
 
 
-typedef enum{
-	FALSE = 0,
-	TRUE  = 1,
-}BOOL;
+/*----------------------------------------------*
+ * const defination                             *
+ *----------------------------------------------*/
+typedef enum {
+    FALSE    = 0,
+    TRUE     = 1,
+} BOOL;
 
 #ifndef NULL
-#define NULL		0L
+#define NULL             0L
 #endif
 
-#define NULL_PTR	0L
-#define SUCCESS		0
-#define FAILURE		(-1)
+//#define NULL          0L
+#define NULL_PTR      0L
 
+#define SUCCESS          0
+#define FAILURE          (-1)
 
 
 #ifdef __cplusplus
 #if __cplusplus
 }
 #endif
-#endif  /* __cplusplus */
+#endif /* __cplusplus */
 
-#endif /*__TYPE_H */
-
+#endif /* __TYPE_H__ */
 

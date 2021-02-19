@@ -1,0 +1,60 @@
+-----------------------------------------
+project: rtsp server
+The author: kingersun
+version: 1.0.0.0
+email: kingersun@163.com
+telephone: 15067195148
+QQ: 48648623
+Copyright (C) 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018 Free
+Software Foundation, Inc.
+-----------------------------------------
+
+Project Info
+=====================
+This software support RTSP/RTP/RTCP,you can free use,copy,modify,But if you find software bugs
+or improved  some code, please give me you modify new code,thanks
+
+If you used for commercial application  give me some cost of living , 
+I will provide better support,According to your needs modify 
+
+Compilers and Options
+=====================
+./configure
+make
+./rtspd
+make;make install
+cp .libs/librtspd.so damon/
+cd damon/
+./sample_rtspd
+
+SUPPORT vidoe format
+=====================
+Currently supported voice format:
+h264
+
+
+
+Support client 
+=====================
+vlc software
+
+please use vlc software input url:
+eg: the correct network address and video file
+rtsp://192.168.1.169:554/1.h264
+
+
+modify add file
+=====================
+If you add yourself the application code,please run command:
+automake --add-missing , and modify Makefile.am Code corresponding relation 
+
+notice:   if you use some lib functions please 
+aclocal
+libtoolize -f -c
+autoconf
+automake --add-missing
+
+
+
+
+

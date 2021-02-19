@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <time.h>
-#include "../comm/type.h"
+#include <../comm/type.h>
 
 #ifndef WIN32
 #       include <sys/utsname.h>
